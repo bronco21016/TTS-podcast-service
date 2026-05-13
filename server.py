@@ -1,10 +1,12 @@
 import json
 import multiprocessing
+import os
 from dataclasses import asdict
 from datetime import datetime, timezone
+from functools import wraps
 from urllib.parse import urlparse
 
-from flask import Flask, Response, send_from_directory, abort, render_template, request
+from flask import Flask, Response, send_from_directory, abort, render_template, request, jsonify
 
 from config import AUDIO_DIR, BASE_DIR, EPISODES_FILE, FLASK_PORT, PODCAST_TITLE
 from podcast import Episode, generate_rss, load_episodes, make_episode_id, delete_episode
@@ -171,6 +173,66 @@ def delete_episode_web(ep_id: str):
         if audio_file.exists():
             audio_file.unlink()
     return "", 200
+
+
+# ---------- API ----------
+
+def _require_api_key(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        api_key = os.environ.get("TTS_API_KEY", "")
+        if not api_key:
+            return jsonify({"error": "TTS_API_KEY not configured on server"}), 503
+        auth = request.headers.get("Authorization", "")
+        if not auth.startswith("Bearer ") or auth[7:] != api_key:
+            return jsonify({"error": "Unauthorized"}), 401
+        return f(*args, **kwargs)
+    return wrapper
+
+
+@app.route("/api/episodes", methods=["POST"])
+@_require_api_key
+def api_add_episode():
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "JSON body required"}), 400
+
+    text = data.get("text", "").strip()
+    title = data.get("title", "").strip()
+    description = data.get("description", "").strip()
+
+    if not text:
+        return jsonify({"error": "'text' field is required"}), 400
+
+    if not title:
+        title = text[:60].replace("\n", " ").strip() + "…"
+
+    ep_id = make_episode_id()
+    ep_data = {
+        "id": ep_id,
+        "title": title,
+        "description": description or "",
+        "pub_date": datetime.now(timezone.utc).isoformat(),
+        "source_url": "",
+    }
+
+    from jobs import write_job
+    write_job(ep_id, title=title, status="pending", chunk_current=0, chunk_total=0)
+
+    from worker import run_pipeline
+    proc = multiprocessing.Process(
+        target=run_pipeline,
+        args=(ep_id, ep_data),
+        kwargs={"raw_text": text},
+        daemon=False,
+    )
+    proc.start()
+
+    return jsonify({
+        "job_id": ep_id,
+        "title": title,
+        "status_url": f"/job/{ep_id}",
+    }), 202
 
 
 if __name__ == "__main__":

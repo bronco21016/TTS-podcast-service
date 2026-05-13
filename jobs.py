@@ -1,3 +1,4 @@
+import fcntl
 import json
 import time
 from config import JOBS_DIR
@@ -20,6 +21,19 @@ def read_job(job_id: str) -> dict | None:
         return json.loads(path.read_text())
     except Exception:
         return None
+
+
+def acquire_synthesis_lock():
+    """Block until no other synthesis is running. Returns the lock file handle."""
+    JOBS_DIR.mkdir(exist_ok=True)
+    lock_file = open(JOBS_DIR / "synthesis.lock", "w")
+    fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+    return lock_file
+
+
+def release_synthesis_lock(lock_file) -> None:
+    fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+    lock_file.close()
 
 
 def cleanup_old_jobs(max_age_secs: int = 86400) -> None:
