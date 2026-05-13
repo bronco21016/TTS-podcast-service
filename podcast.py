@@ -20,6 +20,7 @@ class Episode:
     pub_date: str          # ISO 8601
     duration_secs: float
     file_size_bytes: int
+    source_url: str = ""   # original URL, empty for text/file input
 
 
 def make_episode_id() -> str:
@@ -31,7 +32,17 @@ def load_episodes() -> list[Episode]:
         return []
     with open(EPISODES_FILE) as f:
         data = json.load(f)
-    return [Episode(**ep) for ep in data]
+    # source_url may be missing in older episodes — default to ""
+    return [Episode(**{**ep, "source_url": ep.get("source_url", "")}) for ep in data]
+
+
+def find_duplicate_url(url: str) -> "Episode | None":
+    if not url:
+        return None
+    for ep in load_episodes():
+        if ep.source_url and ep.source_url == url:
+            return ep
+    return None
 
 
 def save_episode(ep: Episode) -> None:

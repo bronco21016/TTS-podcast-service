@@ -7,7 +7,7 @@ Type=simple
 User=admin
 WorkingDirectory=/home/admin/claude/TTS_service
 EnvironmentFile=/home/admin/claude/TTS_service/.env
-ExecStart=/home/admin/claude/TTS_service/.venv/bin/python server.py
+ExecStart=/home/admin/claude/TTS_service/.venv/bin/gunicorn --workers 2 --bind 0.0.0.0:5050 server:app
 Restart=on-failure
 RestartSec=5
 

@@ -4,6 +4,9 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).parent / ".env")
 
+# Suppress noisy unauthenticated HuggingFace Hub warnings
+os.environ.setdefault("HF_HUB_VERBOSITY", "error")
+
 # --- User-editable settings ---
 PODCAST_TITLE = "The Briefing"
 PODCAST_AUTHOR = "Justin"

@@ -1,4 +1,6 @@
 import sys
+import time
+import threading
 from pathlib import Path
 import anthropic
 from config import ANTHROPIC_API_KEY, BASE_DIR
@@ -24,14 +26,30 @@ Transform the provided article into a clean, natural-sounding spoken transcript.
 """
 
 
+def _spinner(stop_event: threading.Event):
+    frames = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+    start = time.time()
+    i = 0
+    while not stop_event.is_set():
+        elapsed = time.time() - start
+        print(f"\r  {frames[i % len(frames)]} Cleaning transcript... {elapsed:.0f}s", end="", flush=True)
+        i += 1
+        time.sleep(0.1)
+    print("\r", end="", flush=True)
+
+
 def clean_for_tts(title: str, raw_text: str, episode_id: str = "") -> str:
     if not ANTHROPIC_API_KEY:
         print("Error: ANTHROPIC_API_KEY is not set.", file=sys.stderr)
         sys.exit(1)
 
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-
     user_message = f"Article title: {title}\n\n---\n\n{raw_text}"
+
+    stop = threading.Event()
+    spinner = threading.Thread(target=_spinner, args=(stop,), daemon=True)
+    spinner.start()
+    t_start = time.time()
 
     transcript = ""
     with client.messages.stream(
@@ -43,11 +61,15 @@ def clean_for_tts(title: str, raw_text: str, episode_id: str = "") -> str:
         for text in stream.text_stream:
             transcript += text
 
+    stop.set()
+    spinner.join()
+    elapsed = time.time() - t_start
+
     transcript = transcript.strip()
 
-    # Save transcript to archive
     slug = episode_id or title[:40].replace(" ", "_").replace("/", "-")
     archive_path = TRANSCRIPTS_DIR / f"{slug}.txt"
     archive_path.write_text(f"{title}\n{'='*len(title)}\n\n{transcript}\n", encoding="utf-8")
 
+    print(f"  Done — {len(transcript):,} chars in {elapsed:.0f}s → transcripts/{archive_path.name}")
     return transcript
