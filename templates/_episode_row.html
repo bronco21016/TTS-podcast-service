@@ -1,0 +1,22 @@
+<article id="episode-{{ ep.id }}" class="episode-row">
+  <div class="ep-play">
+    <a href="/audio/{{ ep.filename }}" target="_blank" title="Play audio">▶</a>
+  </div>
+  <div class="ep-info">
+    <span class="ep-title">{{ ep.title }}</span>
+    <small class="ep-meta">{{ ep.pub_date }} · {{ ep.duration_label }}</small>
+  </div>
+  <div class="ep-actions">
+    <button hx-get="/episode/{{ ep.id }}/edit"
+            hx-target="#episode-{{ ep.id }}"
+            hx-swap="outerHTML"
+            class="outline secondary ep-btn"
+            title="Edit title">✎</button>
+    <button hx-delete="/episode/{{ ep.id }}"
+            hx-confirm="Remove "{{ ep.title }}"?"
+            hx-target="#episode-{{ ep.id }}"
+            hx-swap="outerHTML swap:300ms"
+            class="outline contrast ep-btn"
+            title="Delete">✕</button>
+  </div>
+</article>

@@ -5,7 +5,7 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
-from config import AUDIO_DIR, PODCAST_AUTHOR
+from config import AUDIO_DIR, EPISODES_FILE, PODCAST_AUTHOR
 from podcast import Episode, make_episode_id, save_episode, load_episodes, delete_episode, find_duplicate_url
 from ingest import check_x_session
 

@@ -4,5 +4,6 @@ audio/
 transcripts/
 episodes.json
 x_session.json
+jobs/
 __pycache__/
 *.pyc

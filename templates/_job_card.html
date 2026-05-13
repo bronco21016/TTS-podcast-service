@@ -1,0 +1,45 @@
+{% if job.status == 'done' %}
+  <span id="job-{{ job.id }}" style="display:none" aria-hidden="true"></span>
+  <div id="episodes-list" hx-swap-oob="outerHTML">
+    {% for ep in episodes %}
+      {% include '_episode_row.html' %}
+    {% else %}
+      <p class="muted-text">No episodes yet.</p>
+    {% endfor %}
+  </div>
+
+{% elif job.status == 'error' %}
+  <article id="job-{{ job.id }}" class="job-card job-error">
+    <div class="job-title">✗ {{ job.title }}</div>
+    <div class="job-error-msg">{{ job.error }}</div>
+    <button onclick="this.closest('article').remove()"
+            class="outline secondary ep-btn" style="margin-top:0.5rem">Dismiss</button>
+  </article>
+
+{% else %}
+  <article id="job-{{ job.id }}" class="job-card"
+           hx-get="/job/{{ job.id }}"
+           hx-trigger="every 3s"
+           hx-swap="outerHTML">
+    <div class="job-title">
+      <span class="spinner">⟳</span> {{ job.title }}
+    </div>
+    <div class="job-status-text">
+      {% if job.status == 'synthesizing' %}
+        Synthesizing audio
+        {% if job.chunk_total %}· {{ job.chunk_current }}/{{ job.chunk_total }} chunks{% endif %}
+      {% elif job.status == 'transcribing' %}
+        Cleaning transcript with Claude…
+      {% elif job.status == 'ingesting' %}
+        Fetching article…
+      {% else %}
+        Queued…
+      {% endif %}
+    </div>
+    {% if job.status == 'synthesizing' and job.chunk_total %}
+      <progress value="{{ job.chunk_current }}" max="{{ job.chunk_total }}"></progress>
+    {% else %}
+      <progress></progress>
+    {% endif %}
+  </article>
+{% endif %}

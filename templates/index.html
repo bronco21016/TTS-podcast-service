@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ podcast_title }}</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="container">
+
+    <nav>
+      <ul><li><strong>🎙 {{ podcast_title }}</strong></li></ul>
+      <ul><li><a href="/feed.rss" class="contrast">RSS ↗</a></li></ul>
+    </nav>
+
+    <article>
+      <form hx-post="/add"
+            hx-target="#job-slot"
+            hx-swap="beforeend"
+            hx-disabled-elt="find button[type='submit']"
+            hx-on::after-request="this.reset()">
+        <fieldset role="group">
+          <input type="url" name="url"
+                 placeholder="Paste article URL…"
+                 autocomplete="off" autocorrect="off" spellcheck="false">
+          <button type="submit">Add</button>
+        </fieldset>
+        <details>
+          <summary>Paste text instead</summary>
+          <textarea name="text" rows="5"
+                    placeholder="Paste article text here…"></textarea>
+          <input type="text" name="title"
+                 placeholder="Title (optional)">
+        </details>
+      </form>
+    </article>
+
+    <div id="job-slot"></div>
+
+    <section>
+      <h2>Episodes</h2>
+      <div id="episodes-list">
+        {% for ep in episodes %}
+          {% include '_episode_row.html' %}
+        {% else %}
+          <p class="muted-text">No episodes yet.</p>
+        {% endfor %}
+      </div>
+    </section>
+
+  </main>
+</body>
+</html>

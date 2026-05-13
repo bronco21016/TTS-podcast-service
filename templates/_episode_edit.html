@@ -1,0 +1,15 @@
+<article id="episode-{{ ep.id }}" class="episode-row editing">
+  <form hx-patch="/episode/{{ ep.id }}"
+        hx-target="#episode-{{ ep.id }}"
+        hx-swap="outerHTML"
+        class="edit-form">
+    <input type="text" name="title" value="{{ ep.title }}" autofocus>
+    <div class="edit-actions">
+      <button type="submit">Save</button>
+      <button type="button" class="outline secondary"
+              hx-get="/episode/{{ ep.id }}"
+              hx-target="#episode-{{ ep.id }}"
+              hx-swap="outerHTML">Cancel</button>
+    </div>
+  </form>
+</article>

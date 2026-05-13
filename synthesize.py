@@ -40,10 +40,14 @@ def _chunk_text(text: str, max_words: int) -> list[str]:
     return chunks
 
 
-def synthesize(transcript: str, output_path: Path) -> float:
+def synthesize(transcript: str, output_path: Path, job_id: str = None) -> float:
     """Synthesize transcript to MP3. Returns duration in seconds."""
     pipeline = _get_pipeline()
     chunks = _chunk_text(transcript, KOKORO_CHUNK_WORDS)
+
+    if job_id:
+        from jobs import write_job
+        write_job(job_id, status="synthesizing", chunk_current=0, chunk_total=len(chunks))
 
     all_audio: list[np.ndarray] = []
     t_start = time.time()
@@ -54,6 +58,9 @@ def synthesize(transcript: str, output_path: Path) -> float:
             arr = audio.numpy() if hasattr(audio, "numpy") else np.array(audio)
             all_audio.append(arr)
         print(f"{time.time() - t_chunk:.1f}s")
+        if job_id:
+            from jobs import write_job
+            write_job(job_id, chunk_current=i)
 
     combined = np.concatenate(all_audio) if len(all_audio) > 1 else all_audio[0]
     audio_duration = len(combined) / KOKORO_SAMPLE_RATE
