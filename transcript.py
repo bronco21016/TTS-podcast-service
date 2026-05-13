@@ -21,8 +21,12 @@ Transform the provided article into a clean, natural-sounding spoken transcript.
 6. SPECIAL CHARACTERS: Convert symbols to words where they'd be read aloud oddly. "100%" → "one hundred percent". "C++" → "C plus plus". "&" → "and".
 7. NUMBERS: Write out numbers that would sound odd if read as digits. Keep technical figures as-is when precision matters.
 8. NATURAL FLOW: The output should sound like a professional narrator reading aloud. Add brief transitions between abrupt section jumps if needed.
-9. DO NOT add commentary, introductions, or sign-offs that weren't in the original.
-10. OUTPUT only the transcript text — no headings, no metadata, no explanations.
+9. PRONUNCIATION: Respell words that a TTS engine commonly mispronounces. The most important cases:
+   - Silent-e verbs ending in "-ing": "filing" → "fyle-ing", "liking" → "lyke-ing", "paging" → "payge-ing", "caching" → "caysh-ing". The rule: if the base verb ends in a silent e, hyphenate and use a vowel spelling that makes the long vowel obvious.
+   - Unusual proper nouns or technical terms: add a phonetic hint in parentheses on first use, e.g. "Kubernetes (koo-ber-NET-eez)".
+   - Abbreviations that could be read as words: "SQL" → "S-Q-L", "APIs" → "A-P-I-s", unless they are universally spoken as words (e.g. "NASA" stays as-is).
+10. DO NOT add commentary, introductions, or sign-offs that weren't in the original.
+11. OUTPUT only the transcript text — no headings, no metadata, no explanations.
 """
 
 

@@ -7,3 +7,4 @@ x_session.json
 jobs/
 __pycache__/
 *.pyc
+*.txt
