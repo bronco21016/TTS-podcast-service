@@ -6,6 +6,7 @@ from pathlib import Path
 
 from config import AUDIO_DIR, PODCAST_AUTHOR
 from podcast import Episode, make_episode_id, save_episode, load_episodes, delete_episode
+from ingest import auth_x
 
 
 def cmd_add(args):
@@ -163,6 +164,9 @@ def main():
     del_p = sub.add_parser("delete", help="Delete an episode by number or ID prefix")
     del_p.add_argument("episode", help="Episode number (from list) or ID prefix")
 
+    # --- auth-x ---
+    sub.add_parser("auth-x", help="Authenticate with X.com and save session for article fetching")
+
     args = parser.parse_args()
 
     if args.command == "add":
@@ -171,6 +175,8 @@ def main():
         cmd_list(args)
     elif args.command == "delete":
         cmd_delete(args)
+    elif args.command == "auth-x":
+        auth_x()
 
 
 if __name__ == "__main__":

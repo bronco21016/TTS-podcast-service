@@ -29,6 +29,7 @@ KOKORO_CHUNK_WORDS = 450
 BASE_DIR = Path(__file__).parent
 AUDIO_DIR = BASE_DIR / "audio"
 EPISODES_FILE = BASE_DIR / "episodes.json"
+X_SESSION_FILE = BASE_DIR / "x_session.json"
 
 AUDIO_DIR.mkdir(exist_ok=True)
 

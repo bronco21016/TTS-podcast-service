@@ -3,5 +3,6 @@
 audio/
 transcripts/
 episodes.json
+x_session.json
 __pycache__/
 *.pyc

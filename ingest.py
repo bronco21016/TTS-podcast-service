@@ -1,17 +1,24 @@
 import re
+import sys
 import requests
 from bs4 import BeautifulSoup
+from urllib.parse import urlparse
+from config import X_SESSION_FILE
 
 
 def fetch_text(url: str) -> tuple[str, str]:
     """Fetch article text from a URL. Returns (title, body_text)."""
+    if _is_x_url(url):
+        return _fetch_x_article(url)
+
+    # Try trafilatura for static pages
     try:
         import trafilatura
         downloaded = trafilatura.fetch_url(url)
         if downloaded:
             text = trafilatura.extract(downloaded, include_comments=False, include_tables=False)
             title = _extract_title_from_html(downloaded) or _title_from_url(url)
-            if text:
+            if text and len(text) > 200:
                 return title, text
     except Exception:
         pass
@@ -34,6 +41,80 @@ def fetch_text(url: str) -> tuple[str, str]:
         raise ValueError(f"Could not extract text from {url}")
 
     return title, text
+
+
+def _is_x_url(url: str) -> bool:
+    host = urlparse(url).netloc.lower().lstrip("www.")
+    return host in ("x.com", "twitter.com")
+
+
+def _fetch_x_article(url: str) -> tuple[str, str]:
+    from playwright.sync_api import sync_playwright
+
+    if not X_SESSION_FILE.exists():
+        print("No X session found. Run: narrate auth-x", file=sys.stderr)
+        sys.exit(1)
+
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        ctx = browser.new_context(storage_state=str(X_SESSION_FILE))
+        page = ctx.new_page()
+
+        print("  Loading X article in headless browser...")
+        page.goto(url, wait_until="networkidle", timeout=30000)
+
+        # Check if we ended up on a login page
+        if "login" in page.url or "i/flow/login" in page.url:
+            browser.close()
+            print("X session has expired. Run: narrate auth-x", file=sys.stderr)
+            sys.exit(1)
+
+        # Extract article title — X articles use a prominent heading
+        title = ""
+        for selector in ["h1", "[data-testid='articleTitle']", "article h2"]:
+            el = page.query_selector(selector)
+            if el:
+                title = el.inner_text().strip()
+                if title:
+                    break
+        title = title or _title_from_url(url)
+
+        # Extract article body — collect all paragraph-like text blocks
+        # X articles render in a content container; grab text nodes in order
+        content = page.evaluate("""() => {
+            const article = document.querySelector('article') ||
+                            document.querySelector('[data-testid="article"]') ||
+                            document.querySelector('main');
+            if (!article) return '';
+            const blocks = article.querySelectorAll('p, h1, h2, h3, li');
+            return Array.from(blocks)
+                .map(el => el.innerText.trim())
+                .filter(t => t.length > 0)
+                .join('\\n\\n');
+        }""")
+
+        browser.close()
+
+    if not content or len(content) < 100:
+        raise ValueError("Could not extract article content from X. The article may be paywalled or the session may be expired.")
+
+    return title, content
+
+
+def auth_x():
+    """Open a visible browser for the user to log into X, then save the session."""
+    from playwright.sync_api import sync_playwright
+
+    print("Opening browser — log into X, then close the browser window when done.")
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        ctx = browser.new_context()
+        page = ctx.new_page()
+        page.goto("https://x.com/login")
+        input("Press Enter here once you've logged in and the feed has loaded... ")
+        ctx.storage_state(path=str(X_SESSION_FILE))
+        browser.close()
+    print(f"Session saved to {X_SESSION_FILE}")
 
 
 def _extract_title_from_html(html: str) -> str:
