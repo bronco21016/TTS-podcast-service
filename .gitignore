@@ -1,6 +1,7 @@
 .env
 .venv/
 audio/
+transcripts/
 episodes.json
 __pycache__/
 *.pyc

@@ -1,6 +1,10 @@
 import sys
+from pathlib import Path
 import anthropic
-from config import ANTHROPIC_API_KEY
+from config import ANTHROPIC_API_KEY, BASE_DIR
+
+TRANSCRIPTS_DIR = BASE_DIR / "transcripts"
+TRANSCRIPTS_DIR.mkdir(exist_ok=True)
 
 _SYSTEM_PROMPT = """\
 You are a transcript editor preparing written content for text-to-speech conversion.
@@ -20,7 +24,7 @@ Transform the provided article into a clean, natural-sounding spoken transcript.
 """
 
 
-def clean_for_tts(title: str, raw_text: str) -> str:
+def clean_for_tts(title: str, raw_text: str, episode_id: str = "") -> str:
     if not ANTHROPIC_API_KEY:
         print("Error: ANTHROPIC_API_KEY is not set.", file=sys.stderr)
         sys.exit(1)
@@ -38,7 +42,12 @@ def clean_for_tts(title: str, raw_text: str) -> str:
     ) as stream:
         for text in stream.text_stream:
             transcript += text
-            print(text, end="", flush=True)
 
-    print()  # newline after streaming output
-    return transcript.strip()
+    transcript = transcript.strip()
+
+    # Save transcript to archive
+    slug = episode_id or title[:40].replace(" ", "_").replace("/", "-")
+    archive_path = TRANSCRIPTS_DIR / f"{slug}.txt"
+    archive_path.write_text(f"{title}\n{'='*len(title)}\n\n{transcript}\n", encoding="utf-8")
+
+    return transcript

@@ -1,3 +1,4 @@
+import time
 from pathlib import Path
 import numpy as np
 import soundfile as sf
@@ -45,14 +46,19 @@ def synthesize(transcript: str, output_path: Path) -> float:
     chunks = _chunk_text(transcript, KOKORO_CHUNK_WORDS)
 
     all_audio: list[np.ndarray] = []
+    t_start = time.time()
     for i, chunk in enumerate(chunks, 1):
-        print(f"  Synthesizing chunk {i}/{len(chunks)}...")
+        print(f"  Chunk {i}/{len(chunks)}...", end=" ", flush=True)
+        t_chunk = time.time()
         for _, _, audio in pipeline(chunk, voice=KOKORO_VOICE, speed=KOKORO_SPEED):
-            # audio is a torch tensor; convert to numpy
             arr = audio.numpy() if hasattr(audio, "numpy") else np.array(audio)
             all_audio.append(arr)
+        print(f"{time.time() - t_chunk:.1f}s")
 
     combined = np.concatenate(all_audio) if len(all_audio) > 1 else all_audio[0]
+    audio_duration = len(combined) / KOKORO_SAMPLE_RATE
+    wall_time = time.time() - t_start
+    rtf = audio_duration / wall_time  # real-time factor: >1 means faster than realtime
 
     wav_path = output_path.with_suffix(".wav")
     sf.write(str(wav_path), combined, KOKORO_SAMPLE_RATE)
@@ -61,4 +67,5 @@ def synthesize(transcript: str, output_path: Path) -> float:
     audio_seg.export(str(output_path), format="mp3", bitrate=MP3_BITRATE)
     wav_path.unlink()
 
-    return len(combined) / KOKORO_SAMPLE_RATE
+    print(f"  Synthesis: {wall_time:.1f}s wall time → {audio_duration:.1f}s audio ({rtf:.1f}x real-time)")
+    return audio_duration
