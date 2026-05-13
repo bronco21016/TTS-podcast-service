@@ -1,0 +1,15 @@
+[Unit]
+Description=TTS Podcast RSS Server
+After=network.target
+
+[Service]
+Type=simple
+User=admin
+WorkingDirectory=/home/admin/claude/TTS_service
+EnvironmentFile=/home/admin/claude/TTS_service/.env
+ExecStart=/home/admin/claude/TTS_service/.venv/bin/python server.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

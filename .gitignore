@@ -1,0 +1,6 @@
+.env
+.venv/
+audio/
+episodes.json
+__pycache__/
+*.pyc
