@@ -54,7 +54,7 @@ def cmd_add(args):
     episode_id = make_episode_id()
     print("=== Cleaning transcript via Claude ===")
     transcript = clean_for_tts(title, raw_text, episode_id=episode_id)
-    print(f"  Done — {len(transcript):,} characters saved to transcripts/{episode_id}.txt\n")
+    print()
 
     # --- Synthesize (background) ---
     filename = f"{episode_id}.mp3"
