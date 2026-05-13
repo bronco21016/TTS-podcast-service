@@ -61,17 +61,42 @@ def _fetch_x_article(url: str) -> tuple[str, str]:
         page = ctx.new_page()
 
         print("  Loading X article in headless browser...")
-        page.goto(url, wait_until="networkidle", timeout=30000)
+        page.goto(url, wait_until="domcontentloaded", timeout=30000)
 
         # Check if we ended up on a login page
         if "login" in page.url or "i/flow/login" in page.url:
             browser.close()
-            print("X session has expired. Run: narrate auth-x", file=sys.stderr)
+            print("X session has expired. Re-run auth_x_helper.py on your laptop and SCP x_session.json over.", file=sys.stderr)
             sys.exit(1)
 
-        # Extract article title — X articles use a prominent heading
+        # Wait for article body to render — X articles lazy-load content
+        try:
+            page.wait_for_selector("article, [data-testid='article'], main", timeout=10000)
+        except Exception:
+            pass
+        page.wait_for_timeout(2000)
+
+        # Scroll through the page to trigger lazy loading of article paragraphs
+        page.evaluate("""async () => {
+            await new Promise(resolve => {
+                let total = 0;
+                const step = 800;
+                const delay = 300;
+                const timer = setInterval(() => {
+                    window.scrollBy(0, step);
+                    total += step;
+                    if (total >= document.body.scrollHeight) {
+                        clearInterval(timer);
+                        resolve();
+                    }
+                }, delay);
+            });
+        }""")
+        page.wait_for_timeout(2000)
+
+        # Extract article title
         title = ""
-        for selector in ["h1", "[data-testid='articleTitle']", "article h2"]:
+        for selector in ["h1", "[data-testid='articleTitle']", "article h2", "main h2"]:
             el = page.query_selector(selector)
             if el:
                 title = el.inner_text().strip()
@@ -79,18 +104,15 @@ def _fetch_x_article(url: str) -> tuple[str, str]:
                     break
         title = title or _title_from_url(url)
 
-        # Extract article body — collect all paragraph-like text blocks
-        # X articles render in a content container; grab text nodes in order
+        # Extract body: remove sidebar/nav then take full body text
         content = page.evaluate("""() => {
-            const article = document.querySelector('article') ||
-                            document.querySelector('[data-testid="article"]') ||
-                            document.querySelector('main');
-            if (!article) return '';
-            const blocks = article.querySelectorAll('p, h1, h2, h3, li');
-            return Array.from(blocks)
-                .map(el => el.innerText.trim())
-                .filter(t => t.length > 0)
-                .join('\\n\\n');
+            // Remove sidebar, nav, and engagement widgets
+            const noise = document.querySelectorAll(
+                '[data-testid="sidebarColumn"], nav, [role="navigation"], ' +
+                '[aria-label="Home timeline"], [data-testid="TopNavBar"]'
+            );
+            noise.forEach(el => el.remove());
+            return document.body.innerText;
         }""")
 
         browser.close()
