@@ -78,6 +78,7 @@ def generate_rss() -> bytes:
     fg.link(href=feed_url, rel="self")
     fg.language(PODCAST_LANGUAGE)
     fg.description(PODCAST_DESCRIPTION)
+    fg.image(f"{BASE_URL}/cover.png", PODCAST_TITLE, BASE_URL)  # standard RSS <image>
     fg.podcast.itunes_author(PODCAST_AUTHOR)
     fg.podcast.itunes_explicit("no")
     fg.podcast.itunes_category("Technology")
