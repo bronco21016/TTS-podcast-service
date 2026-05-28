@@ -48,12 +48,12 @@ def serve_audio(filename: str):
     return send_from_directory(AUDIO_DIR, filename)
 
 
-@app.route("/cover.png")
+@app.route("/cover.jpg")
 def serve_cover():
-    cover = BASE_DIR / "cover.png"
+    cover = BASE_DIR / "cover.jpg"
     if not cover.exists():
         abort(404)
-    return send_from_directory(BASE_DIR, "cover.png")
+    return send_from_directory(BASE_DIR, "cover.jpg")
 
 
 # ---------- web UI ----------
